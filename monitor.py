@@ -31,9 +31,24 @@ data = {
     "status": status
 }
 
-# Spara som JSON till dashboard/data.json
 with open("dashboard/data.json", "w") as f:
     json.dump(data, f, indent=2)
+
+# Lägg till i historikfil
+history_path = "dashboard/history.json"
+if os.path.exists(history_path):
+    with open(history_path, "r") as f:
+        history = json.load(f)
+else:
+    history = []
+
+history.append(data)
+
+# Spara max 50 senaste poster
+history = history[-50:]
+
+with open(history_path, "w") as f:
+    json.dump(history, f, indent=2)
 
 # Visa i terminal
 print(json.dumps(data, indent=2))

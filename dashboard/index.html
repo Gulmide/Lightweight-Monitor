@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <title>Övervakningsdashboard</title>
+  <meta http-equiv="refresh" content="30">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+    .ok { color: green; font-weight: bold; }
+    .alert { color: red; font-weight: bold; }
+    canvas { max-width: 800px; margin-bottom: 30px; background: #fff; padding: 10px; border: 1px solid #ccc; }
+  </style>
+</head>
+<body>
+  <h1>Serverstatus</h1>
+  <div id="output">Laddar...</div>
+
+  <h2>Historik – CPU</h2>
+  <canvas id="cpuChart"></canvas>
+
+  <h2>Historik – Minne</h2>
+  <canvas id="memChart"></canvas>
+
+  <script>
+    // Visa senaste mätningen
+    fetch("data.json")
+      .then(res => res.json())
+      .then(data => {
+        const color = data.status === "ALERT" ? "alert" : "ok";
+        document.getElementById("output").innerHTML = `
+          <p><strong>Status:</strong> <span class="${color}">${data.status}</span></p>
+          <p><strong>CPU:</strong> ${data.cpu}%</p>
+          <p><strong>Minne:</strong> ${data.mem}%</p>
+          <p><strong>Tid:</strong> ${new Date(data.timestamp).toLocaleString()}</p>
+        `;
+      })
+      .catch(error => {
+        document.getElementById("output").innerText = "Kunde inte läsa data.json";
+        console.error("Fel med data.json:", error);
+      });
+
+    // Rita historikgrafer
+    fetch("history.json")
+      .then(res => res.json())
+      .then(history => {
+        const labels = history.map(d => new Date(d.timestamp).toLocaleTimeString());
+        const cpuData = history.map(d => d.cpu);
+        const memData = history.map(d => d.mem);
+
+        // CPU-graf
+        new Chart(document.getElementById("cpuChart"), {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "CPU-användning (%)",
+              data: cpuData,
+              borderColor: "red",
+              backgroundColor: "rgba(255,0,0,0.1)",
+              tension: 0.3,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: { min: 0, max: 100 }
+            }
+          }
+        });
+
+        // Minne-graf
+        new Chart(document.getElementById("memChart"), {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Minnesanvändning (%)",
+              data: memData,
+              borderColor: "blue",
+              backgroundColor: "rgba(0,0,255,0.1)",
+              tension: 0.3,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            scales: {
+              y: { min: 0, max: 100 }
+            }
+          }
+        });
+      })
+      .catch(error => {
+        console.error("Fel med history.json:", error);
+      });
+  </script>
+</body>
+</html>
