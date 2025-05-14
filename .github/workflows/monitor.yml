@@ -1,0 +1,23 @@
+name: Monitor System
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Kör var 15:e minut
+  workflow_dispatch:        # Tillåter manuell körning från GitHub
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kod
+        uses: actions/checkout@v4
+
+      - name: Installera beroenden
+        run: pip install psutil requests
+
+      - name: Kör monitor.py
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          THRESHOLD_CPU: ${{ secrets.THRESHOLD_CPU }}
+          THRESHOLD_MEM: ${{ secrets.THRESHOLD_MEM }}
+        run: python monitor.py
