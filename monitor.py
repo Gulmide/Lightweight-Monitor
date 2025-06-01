@@ -4,6 +4,9 @@ import requests
 import json
 from datetime import datetime, timezone
 
+# Skapa dashboard-mapp om den inte finns
+os.makedirs("dashboard", exist_ok=True)
+
 # Hämta aktuell CPU- och minnesanvändning
 cpu = psutil.cpu_percent()
 mem = psutil.virtual_memory().percent
@@ -17,24 +20,21 @@ slack_url = os.getenv("SLACK_WEBHOOK_URL")
 status = "OK"
 if cpu > cpu_limit or mem > mem_limit:
     status = "ALERT"
-    payload = {
-        "text": f"🚨 LARM!\nCPU: {cpu}%\nMinne: {mem}%\nTid: {datetime.now(timezone.utc).isoformat()}"
-    }
-    if slack_url:
-        requests.post(slack_url, json=payload)
 
 # Skapa dataobjekt
+timestamp = datetime.now(timezone.utc).isoformat()
 data = {
-    "timestamp": datetime.now(timezone.utc).isoformat(),
+    "timestamp": timestamp,
     "cpu": cpu,
     "mem": mem,
     "status": status
 }
 
+# Skriv till dashboard/data.json
 with open("dashboard/data.json", "w") as f:
     json.dump(data, f, indent=2)
 
-# Lägg till i historikfil
+# Lägg till i historik
 history_path = "dashboard/history.json"
 if os.path.exists(history_path):
     with open(history_path, "r") as f:
@@ -43,13 +43,21 @@ else:
     history = []
 
 history.append(data)
-
-# Spara max 50 senaste poster
 history = history[-50:]
 
 with open(history_path, "w") as f:
     json.dump(history, f, indent=2)
 
+# Skicka Slack-meddelande – korrekt formaterat med headers och data
+if slack_url:
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "text": f"📢 TEST från monitor.py\nCPU: {cpu}%\nMEM: {mem}%\nSTATUS: {status}\nTID: {timestamp}"
+    }
+    response = requests.post(slack_url, headers=headers, data=json.dumps(payload))
+    print("🔗 Slack-respons:", response.status_code)
+else:
+    print("🚫 Slack Webhook URL saknas – kontrollera miljövariabeln")
+
 # Visa i terminal
 print(json.dumps(data, indent=2))
-
